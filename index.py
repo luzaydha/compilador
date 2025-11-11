@@ -282,57 +282,66 @@ class StackVM:
 
 # --- JUNTANDO TUDO ---
 
-def compilar_e_executar(codigo):
-    print("--- COMPILADOR TOY ---")
-    print(f"Código Fonte:\n{codigo}\n")
+# Criamos a VM *fora* da função, para que ela seja persistente
+vm_global = StackVM()
+
+def compilar_e_executar(codigo, vm_para_usar, verbose=True):
+    if verbose:
+        print("=== COMPILADOR TOY ===")
+        print(f"Código Fonte:\n{codigo}\n")
 
     # Fase 1: Lexer
     tokens = lexer(codigo)
-    print(f"Tokens: \n{tokens}\n")
+    if verbose: print(f"Tokens: \n{tokens}\n")
 
     # Fase 2 & 3: Parser e AST
     parser = Parser(tokens)
     ast = parser.parse()
-    print(f"AST (Árvore Sintática Abstrata): \n{ast}\n")
+    if verbose: print(f"AST (Árvore Sintática Abstrata): \n{ast}\n")
 
     # Fase 4: Gerador de Código
     gerador = GeradorDeCodigo()
     instrucoes = gerador.gerar(ast)
-    print(f"Instruções da VM (Bytecode):")
-    for inst in instrucoes:
-        print(f"  {inst}")
-    print("\n")
+    if verbose:
+        print(f"Instruções da VM (Bytecode):")
+        for inst in instrucoes:
+            print(f"  {inst}")
+        print("\n")
 
     # Fase 5: Execução na VM
-    print("--- Executando VM ---")
-    vm = StackVM()
-    pilha_final, memoria_final = vm.executar(instrucoes)
+    if verbose: print("--- Executando VM ---")
     
-    print(f"Memória Final: {memoria_final}")
-    print(f"Pilha Final: {pilha_final}")
-    print("-" * 22)
+    # NÃO cria uma VM nova, usa a que foi passada
+    pilha_final, memoria_final = vm_para_usar.executar(instrucoes)
+    
+    if verbose:
+        print(f"Memória Final: {memoria_final}")
+        print(f"Pilha Final: {pilha_final}")
+        print("-" * 22)
+    
+    # Retorna a memória para podermos testar
+    return memoria_final
 
+# --- Exemplo de Uso (Agora funciona como esperado) ---
 
-# --- Exemplo de Uso ---
+if __name__ == "__main__":
+    # Programa 1
+    programa = """
+    x = 10
+    y = 20
+    z = x + y * 2
+    """
+    compilar_e_executar(programa, vm_global) 
 
-# Programa 1
-programa = """
-x = 10
-y = 20
-z = x + y * 2
-"""
-compilar_e_executar(programa) 
+    # Programa 2 (agora sim, continua a memória)
+    programa2 = "w = (x + 5) * z"
+    compilar_e_executar(programa2, vm_global) 
 
-# Programa 2 (continua a memória)
-programa2 = "w = (x + 5) * z"
-compilar_e_executar(programa2) 
-
-# Programa 3: Testando o operador unário
-print("\n=== TESTE UNÁRIO ===")
-programa3 = """
-a = -10
-b = -a + 5
-c = 10 * -b
-"""
-compilar_e_executar(programa3)
-
+    # Programa 3: Testando o operador unário
+    print("\n=== TESTE UNÁRIO ===")
+    programa3 = """
+    a = -10
+    b = -a + 5
+    c = 10 * -b
+    """
+    compilar_e_executar(programa3, vm_global)
