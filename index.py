@@ -162,6 +162,7 @@ class Parser:
             return NoOperacaoUnaria(op, expr)
 
         if token.tipo == 'NUMERO':
+
             self.avancar()
             return NoNumero(token)
         
@@ -277,8 +278,7 @@ class StackVM:
                 elif opcode == 'div':
                    
                     self.stack.append(esq // dir)
-        
-        return self.stack, self.memory
+
 
 # --- JUNTANDO TUDO ---
 
@@ -322,7 +322,6 @@ def compilar_e_executar(codigo, vm_para_usar, verbose=True):
     # Retorna a memória para podermos testar
     return memoria_final
 
-# --- Exemplo de Uso (Agora funciona como esperado) ---
 
 if __name__ == "__main__":
     # Programa 1
