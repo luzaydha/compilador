@@ -1,0 +1,9 @@
+para ativar o *.venv* : python -m venv .venv
+
+para poder ativar o teste :
+
+pip install pytest
+
+.\.venv\Scripts\Activate.ps1
+
+pytest -v

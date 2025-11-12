@@ -1,8 +1,6 @@
-# Este é o seu arquivo test.py
-
-# 1. Importe as classes e a função que você precisa
+# CORRIJA PARA ISSO:
 from index import lexer, Parser, GeradorDeCodigo, StackVM, compilar_e_executar
-import pytest # Você pode precisar instalar: pip install pytest
+import test_compilador 
 
 # --- TESTES AUTOMATIZADOS ---
 # Cada função é um "caso de teste"
@@ -49,12 +47,18 @@ def test_estado_persistente():
     assert memoria_depois['x'] == 100
     assert memoria_depois['y'] == 105
 
-# --- COMO RODAR (Instruções no terminal) ---
+def test_precedencia_com_parenteses():
+    """Testa se z = (2 + 3) * 4 calcula 20, e não 14."""
+    vm = StackVM()
+    codigo = "z = (2 + 3) * 4"
+    memoria = compilar_e_executar(codigo, vm, verbose=False)
 
-# 1. Certifique-se de ter o pytest:
-#    pip install pytest
-#
-# 2. No terminal, NA PASTA 'src', execute:
-#    pytest -v
-#
-# O pytest vai encontrar e executar todas as funções que começam com "test_"
+    # 5 * 4 = 20
+    assert memoria['z'] == 20
+
+    # Teste bônus no mesmo caso
+    codigo_2 = "w = 2 + (3 * 4)"
+    memoria_2 = compilar_e_executar(codigo_2, vm, verbose=False)
+
+    # 2 + 12 = 14
+    assert memoria_2['w'] == 14
