@@ -2,13 +2,15 @@ import re
 
 # --- Fase 1: O LEXER (Analisador Léxico) ---
 class Token:
-    def __init__(self, tipo, valor):
+    def __init__(self, tipo, valor, linha, coluna):
         self.tipo = tipo
         self.valor = valor
-    def __repr__(self):
-        return f"Token({self.tipo}, {repr(self.valor)})"
+        self.linha = linha    
+        self.coluna = coluna  
 
-# Tipos de tokens que esssa linguagem reconhece
+    def __repr__(self):
+        return f"Token({self.tipo}, {repr(self.valor)}, L{self.linha}, C{self.coluna})"
+
 TOKENS = [
     ('NUMERO',    r'\d+'),
     ('ID',        r'[a-zA-Z_][a-zA-Z0-9_]*'), 
@@ -19,8 +21,9 @@ TOKENS = [
     ('DIV',       r'/'),
     ('PAREN_ESQ', r'\('),
     ('PAREN_DIR', r'\)'),
-    ('ESPACO',    r'\s+'), 
-    ('ERRO',      r'.'),   
+    ('NOVA_LINHA',r'\n+'),
+    ('ESPACO',    r'[\t\r ]+'), 
+    ('ERRO',      r'.'),    
 ]
 
 # Compila os padrões de regex em uma única expressão
@@ -29,20 +32,37 @@ token_regex = re.compile(padrao_tokens)
 
 def lexer(codigo):
     tokens = []
+    linha = 1
+    inicio_da_linha = 0  
+    
+    padrao_tokens = '|'.join(f'(?P<{nome}>{regex})' for nome, regex in TOKENS)
+    token_regex = re.compile(padrao_tokens)
+
     for match in token_regex.finditer(codigo):
         tipo = match.lastgroup
         valor = match.group()
+        
+        coluna = match.start() - inicio_da_linha + 1
 
-        if tipo == 'ESPACO':
+        if tipo == 'NOVA_LINHA':
+            # CORREÇÃO: Conta quantas linhas pulou (ex: \n\n)
+            linha += valor.count('\n')
+            inicio_da_linha = match.end() 
             continue 
+        elif tipo == 'ESPACO':
+            continue # Ignora espaços
+        
         elif tipo == 'ERRO':
-            raise ValueError(f"Caractere inesperado: {valor}")
+            local = f"[Linha {linha}, Coluna {coluna}]"
+            raise ValueError(f"{local} Erro: Caractere inesperado: '{valor}'")
         
         if tipo == 'NUMERO':
             valor = int(valor)
 
-        tokens.append(Token(tipo, valor))
+        tokens.append(Token(tipo, valor, linha, coluna))
+        
     return tokens
+
 # --- Fase 2: A AST (Nós da Árvore Sintática) ---
 
 class NoNumero:
@@ -68,15 +88,15 @@ class NoOperacaoBinaria:
 class NoAtribuicao:
     def __init__(self, var_token, expr):
         self.var_nome = var_token.valor
-        self.expr = expr # A expressão à direita do '='
+        self.expr = expr
     def __repr__(self):
         return f"Atrib(Var({self.var_nome}), {self.expr})"
 
 
 class NoOperacaoUnaria:
     def __init__(self, op, expr):
-        self.op = op # O token (MAIS ou MENOS)
-        self.expr = expr # A expressão que está sendo negada/positivada
+        self.op = op
+        self.expr = expr
     def __repr__(self):
         return f"UnaryOp({self.op.tipo}, {self.expr})"
         
@@ -99,28 +119,23 @@ class Parser:
         if token and token.tipo == tipo_esperado:
             self.avancar()
             return token
-        raise SyntaxError(f"Esperado token {tipo_esperado}, mas encontrou {token.tipo if token else 'FIM'}")
-
-    # A gramática da nossa linguagem (simplificada):
-    #
-    # programa   ::= lista_de_comandos
-    # comando    ::= atribuicao | expressao
-    # atribuicao ::= ID IGUAL expressao
-    # expressao  ::= termo ( (MAIS | MENOS) termo )*
-    # termo      ::= fator ( (MULT | DIV) fator )*
-    # fator      ::= NUMERO | ID | PAREN_ESQ expressao PAREN_DIR
+        
+        if token:
+            local = f"[Linha {token.linha}, Coluna {token.coluna}]"
+            msg = f"{local} Erro: Esperado '{tipo_esperado}', mas encontrou '{token.tipo}' ('{token.valor}')"
+        else:
+            msg = f"Erro: Chegou ao fim do arquivo inesperadamente, esperando por '{tipo_esperado}'"
+        
+        raise SyntaxError(msg)
     
     def parse(self):
-
         comandos = []
         while self.token_atual():
             comandos.append(self.parse_comando())
         return comandos
 
     def parse_comando(self):
-    
         token_um = self.tokens[self.pos]
-    
         token_dois = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
 
         if token_um.tipo == 'ID' and token_dois and token_dois.tipo == 'IGUAL':
@@ -152,32 +167,34 @@ class Parser:
             no = NoOperacaoBinaria(no, op, self.parse_fator())
         return no
 
+    # --- FUNÇÃO CRÍTICA CORRIGIDA ---
     def parse_fator(self):
         token = self.token_atual()
 
         if token.tipo in ('MAIS', 'MENOS'):
-            self.avancar() 
+            self.avancar() # <--- FIXO (Estava faltando)
             op = token
             expr = self.parse_fator() 
             return NoOperacaoUnaria(op, expr)
 
         if token.tipo == 'NUMERO':
-
-            self.avancar()
+            self.avancar() # <--- FIXO (Estava faltando)
             return NoNumero(token)
         
         elif token.tipo == 'ID':
-            self.avancar()
+            self.avancar() # <--- FIXO (Estava faltando)
             return NoVariavel(token)
 
         elif token.tipo == 'PAREN_ESQ':
-            self.avancar()
+            self.avancar() # <--- FIXO (Estava faltando)
             no = self.parse_expressao() 
-            self.consumir('PAREN_DIR')
+            self.consumir('PAREN_DIR') # <--- FIXO (Estava faltando)
             return no
         
-        raise SyntaxError(f"Fator inesperado: {token}")
-
+        # O bloco de erro estava correto
+        local = f"[Linha {token.linha}, Coluna {token.coluna}]"
+        raise SyntaxError(f"{local} Erro: Fator inesperado: '{token.valor}'")
+    
 # --- Fase 4: O GERADOR DE CÓDIGO ---
 
 class GeradorDeCodigo:
@@ -191,7 +208,6 @@ class GeradorDeCodigo:
         return self.instrucoes
 
     def visitar(self, no):
-     
         metodo = f'visitar_{type(no).__name__}'
         visitante = getattr(self, metodo, self.visitar_generico)
         return visitante(no)
@@ -200,19 +216,14 @@ class GeradorDeCodigo:
         raise TypeError(f"Nenhum método 'visitar' para o nó {type(no).__name__}")
 
     def visitar_NoNumero(self, no):
-        
         self.instrucoes.append(('push', no.valor))
 
     def visitar_NoVariavel(self, no):
-        
         self.instrucoes.append(('load', no.nome))
 
     def visitar_NoOperacaoBinaria(self, no):
-        
         self.visitar(no.esq)
-        
         self.visitar(no.dir)
-        
         
         if no.op.tipo == 'MAIS':
             self.instrucoes.append(('add', None))
@@ -224,20 +235,16 @@ class GeradorDeCodigo:
             self.instrucoes.append(('div', None))
 
     def visitar_NoAtribuicao(self, no):
-       
         self.visitar(no.expr)
-    
         self.instrucoes.append(('store', no.var_nome))
 
     def visitar_NoOperacaoUnaria(self, no):
         if no.op.tipo == 'MENOS':
-          
             self.instrucoes.append(('push', 0)) 
-            self.visitar(no.expr)               
+            self.visitar(no.expr)            
             self.instrucoes.append(('sub', None)) 
         
         elif no.op.tipo == 'MAIS':
-            
             self.visitar(no.expr)
 
 # ---  Fase 5: A MÁQUINA VIRTUAL DE PILHA ---
@@ -249,7 +256,6 @@ class StackVM:
 
     def executar(self, instrucoes):
         self.stack = []
-       
         
         for (opcode, arg) in instrucoes:
             if opcode == 'push':
@@ -263,7 +269,6 @@ class StackVM:
                 valor = self.stack.pop()
                 self.memory[arg] = valor
             else:
-               
                 if len(self.stack) < 2:
                     raise ValueError("Stack underflow! Operação binária precisa de 2 operandos.")
                 dir = self.stack.pop()
@@ -276,13 +281,12 @@ class StackVM:
                 elif opcode == 'mul':
                     self.stack.append(esq * dir)
                 elif opcode == 'div':
-                   
                     self.stack.append(esq // dir)
 
-
+        return self.stack, self.memory
+    
 # --- JUNTANDO TUDO ---
 
-# Criamos a VM *fora* da função, para que ela seja persistente
 vm_global = StackVM()
 
 def compilar_e_executar(codigo, vm_para_usar, verbose=True):

@@ -1,9 +1,7 @@
-# CORRIJA PARA ISSO:
+
 from index import lexer, Parser, GeradorDeCodigo, StackVM, compilar_e_executar
 import test_compilador 
-
-# --- TESTES AUTOMATIZADOS ---
-# Cada função é um "caso de teste"
+import pytest
 
 def test_atribuicao_simples():
     """Testa se 'x = 10' resulta em {'x': 10}."""
@@ -62,3 +60,31 @@ def test_precedencia_com_parenteses():
 
     # 2 + 12 = 14
     assert memoria_2['w'] == 14
+
+def test_erro_de_sintaxe_com_localizacao():
+    """Testa se o compilador gera um erro de sintaxe com a linha e coluna corretas."""
+    vm = StackVM()
+    
+  
+    codigo_ruim = """
+x = 10
+y = 20 * (5 + ) 
+z = 30
+"""
+    
+   
+    with pytest.raises((SyntaxError, ValueError)) as e:
+        
+        
+        compilar_e_executar(codigo_ruim, vm, verbose=False)
+    
+   
+    erro_str = str(e.value)
+    
+    
+    print(f"\nErro capturado: {erro_str}") # 
+   
+    assert "[Linha 3," in erro_str
+    
+   
+    assert "Fator inesperado: ')'" in erro_str    

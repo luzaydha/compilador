@@ -4,6 +4,23 @@ para poder ativar o teste :
 
 pip install pytest
 
-.\.venv\Scripts\Activate.ps1
+ATIVADOR DE AMBIENTE VIRTUAL : .\.venv\Scripts\Activate.ps1
 
 pytest -v
+
+python index.py
+
+DESATIVADOR DE AMBIEMTE VIRTUAL: deactivate
+
+
+=========== CASO DE ERRO DE SEGURANÇA ============
+
+1.Clique no Menu Iniciar do Windows.
+
+2.Digite PowerShell.
+
+3.Clique com o botão direito em "Windows PowerShell" e selecione "Executar como Administrador".
+
+4.Na janela de Administrador, copie e cole este comando e aperte Enter:
+
+"  Set-ExecutionPolicy RemoteSigned -Scope CurrentUser   "
