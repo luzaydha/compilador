@@ -1,17 +1,24 @@
-para ativar o *.venv* : python -m venv .venv
+=========== COMO ATIVAR O TESTE EM PYTHON ============
 
-para poder ativar o teste :
+1.baixar extensão de python com path.
 
-pip install pytest
 
-ATIVADOR DE AMBIENTE VIRTUAL : .\.venv\Scripts\Activate.ps1
+2.No terminal do VScode, para criar o ambiente virtual.
+ (colocar os comandos abaixo)
 
-pytest -v
+  1." python -m venv .venv "
 
-python index.py
+  2.ATIVADOR DE AMBIENTE VIRTUAL : .\.venv\Scripts\Activate.ps1
+
+  3.para poder ativar o teste : " pip install pytest "
+
+3.PARA  MOSTRAR O COMPILADOR FUNCIONANDO  
+
+  1. pytest -v
+
+  2. python index.py
 
 DESATIVADOR DE AMBIEMTE VIRTUAL: deactivate
-
 
 =========== CASO DE ERRO DE SEGURANÇA ============
 
